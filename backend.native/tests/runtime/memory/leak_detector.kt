@@ -17,15 +17,10 @@ fun dumpLeaks() {
 
 fun test1() {
     val a = AtomicReference<Any?>(null)
-    val b = AtomicReference<Any?>(null)
-    a.value = b
-    b.value = a
+    a.value = a
     val cycles = GC.detectCycles()!!
     assertEquals(1, cycles.size)
-    val cycle = GC.findCycle(cycles[0])!!
-    assertEquals(2, cycle.size)
-    assertTrue(cycle.contains(a))
-    assertTrue(cycle.contains(b))
+    assertTrue(arrayOf(a).contentEquals(GC.findCycle(cycles[0])!!))
     a.value = null
 }
 
@@ -52,7 +47,6 @@ fun test3() {
     }
     a1.value = head
     current.other = a1
-    current.freeze()
     val cycles = GC.detectCycles()!!
     assertEquals(1, cycles.size)
     val cycle = GC.findCycle(cycles[0])!!
@@ -60,18 +54,8 @@ fun test3() {
     a1.value = null
 }
 
-
-fun test4() {
-    val atomic = AtomicReference<Any?>(null)
-    atomic.value = Pair(atomic, Holder(atomic)).freeze()
-}
-
 fun main() {
-    // We must disable cyclic collector here, to avoid interfering with cycle detector.
-    kotlin.native.internal.GC.cyclicCollectorEnabled = false
-    /*test1()
+    test1()
     test2()
-    test3() */
-    test4()
-    kotlin.native.internal.GC.cyclicCollectorEnabled = true
+    test3()
 }
