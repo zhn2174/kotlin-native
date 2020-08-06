@@ -67,9 +67,60 @@ open class CompileToBitcode @Inject constructor(@InputDirectory val srcRoot: Fil
                             "-Werror", "-ftls-model=initial-exec", "-Wno-unused-function")
                 Language.CPP ->
                     listOfNotNull("-std=c++14", "-Werror", "-O2",
+                            // Common:
                             "-Wall", "-Wextra",
+
+                            // Safety & correctness:
+                            // TODO: Consider https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+                            "-Warray-bounds-pointer-arithmetic",
+                            // "-Wcast-qual",
+                            // "-Wconversion",
+                            // "-Wfloat-equal",
+                            // "-Wimplicit-fallthrough",
+                            "-Wstatic-in-inline",
+                            "-Wswitch-enum",
+                            // "-Wundefined-reinterpret-cast",
+                            "-Wvector-conversion",
+
+                            // Unused code:
+                            "-Wabstract-vbase-init",
+                            // "-Wextra-semi-stmt",
+                            // "-Wmissing-noreturn",
+                            // "-Wtautological-constant-in-range-compare",
+                            "-Wtautological-overlap-compare",
+                            // "-Wunreachable-code-aggressive",
+
+                            // Misc:
+                            "-Wdate-time",  // reproducible builds
+                            // "-Wdeprecated",  // modern C++
+                            // "-Wmissing-prototypes",  // unneeded external linkage for a function
+                            // "-Wmissing-variable-declarations",  // unneeded external linkage for a variable
+                            // "-Wold-style-cast",  // modern C++
+                            "-Wloop-analysis",  // various implicit conversions
+                            // "-Wundef",  // TODO: consider this.
+                            // "-Wzero-as-null-pointer-constant",  // modern C++
+
+                            // ObjC:
+                            "-Warc-repeated-use-of-weak",
+                            "-Watomic-properties",
+                            "-Wdeprecated-implementations",
+                            // "-Wdirect-ivar-access",
+                            "-Wexplicit-ownership-type",
+                            "-Wimplicit-retain-self",
+                            "-Wobjc-interface-ivars",
+                            // "-Wobjc-messaging-id",
+                            "-Wobjc-missing-property-synthesis",
+                            "-Wobjc-property-assign-on-object-type",
+                            "-Wmethod-signatures",
+                            "-Woverriding-method-mismatch",
+                            "-Wselector",
+                            "-Wsuper-class-method-mismatch",
+                            // "-Wundeclared-selector",
+
+                            // Disabled:
                             "-Wno-unused-parameter",  // False positives with polymorphic functions.
                             "-Wno-unused-function",  // TODO: Enable this warning when we have C++ runtime tests.
+
                             "-fPIC".takeIf { !HostManager().targetByName(target).isMINGW })
             }
             return commonFlags + languageFlags + compilerArgs
