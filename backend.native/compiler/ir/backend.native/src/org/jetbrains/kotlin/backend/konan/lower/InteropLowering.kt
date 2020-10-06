@@ -362,7 +362,7 @@ private class InteropLoweringPart1(val context: Context) : BaseInteropIrTransfor
         }
 
         val name = property.name.asString()
-        val selector = "set${name.capitalize()}:"
+        val selector = "set${name.capitalizeFirst()}:"
 
         return generateFunctionImp(selector, property.setter!!)
     }
