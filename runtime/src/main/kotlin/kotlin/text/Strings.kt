@@ -155,15 +155,32 @@ public external fun String.regionMatches(
 /**
  * Returns a copy of this string converted to upper case using the rules of the default locale.
  */
-@SymbolName("Kotlin_String_toUpperCase")
-public actual external fun String.toUpperCase(): String
+@DeprecatedSinceKotlin("1.4")
+@Deprecated("Please use locale-insensitive alternative `uppercase()`", ReplaceWith("uppercase()"))
+public actual fun String.toUpperCase(): String = uppercase()
+
+/**
+ * Returns a copy of this string converted to upper case using Unicode mapping rules of the invariant locale.
+ *
+ * @sample samples.text.Strings.uppercase
+ */
+@SymbolName("Kotlin_String_uppercase")
+public actual external fun String.uppercase(): String
 
 /**
  * Returns a copy of this string converted to lower case using the rules of the default locale.
  */
-@SymbolName("Kotlin_String_toLowerCase")
-@Suppress("NOTHING_TO_INLINE")
-public actual external fun String.toLowerCase(): String
+@DeprecatedSinceKotlin("1.4")
+@Deprecated("Please use locale-insensitive alternative `lowercase()`", ReplaceWith("lowercase()"))
+public actual fun String.toLowerCase(): String = lowercase()
+
+/**
+ * Returns a copy of this string converted to lower case using Unicode mapping rules of the invariant locale.
+ *
+ * @sample samples.text.Strings.lowercase
+ */
+@SymbolName("Kotlin_String_lowercase")
+public actual external fun String.lowercase(): String
 
 /**
  * Returns a [CharArray] containing characters of this string.
@@ -179,21 +196,37 @@ private external fun toCharArray(string: String, start: Int, size: Int): CharArr
  *
  * The title case of a character is usually the same as its upper case with several exceptions.
  * The particular list of characters with the special title case form depends on the underlying platform.
- *
- * @sample samples.text.Strings.capitalize
  */
-public actual fun String.capitalize(): String {
-    return if (isNotEmpty() && this[0].isLowerCase()) substring(0, 1).toUpperCase() + substring(1) else this
+@DeprecatedSinceKotlin("1.4")
+@Deprecated("Please use locale-insensitive alternative `capitalizeFirst()`", ReplaceWith("capitalizeFirst()"))
+public actual fun String.capitalize(): String = capitalizeFirst()
+
+/**
+ * Returns a copy of this string having its first letter titlecased using Unicode mapping rules of the invariant locale,
+ * or the original string if it's empty or already starts with a title case letter.
+ *
+ * @sample samples.text.Strings.capitalizeFirst
+ */
+public actual fun String.capitalizeFirst(): String {
+    return if (isNotEmpty() && this[0].isLowerCase()) substring(0, 1).uppercase() + substring(1) else this
 }
 
 /**
  * Returns a copy of this string having its first letter lowercased using the rules of the default locale,
  * or the original string if it's empty or already starts with a lower case letter.
- *
- * @sample samples.text.Strings.decapitalize
  */
-public actual fun String.decapitalize(): String {
-    return if (isNotEmpty() && !this[0].isLowerCase()) substring(0, 1).toLowerCase() + substring(1) else this
+@DeprecatedSinceKotlin("1.4")
+@Deprecated("Please use locale-insensitive alternative `decapitalizeFirst()`", ReplaceWith("decapitalizeFirst()"))
+public actual fun String.decapitalize(): String = decapitalizeFirst()
+
+/**
+ * Returns a copy of this string having its first letter lowercased using Unicode mapping rules of the invariant locale,
+ * or the original string if it's empty or already starts with a lower case letter.
+ *
+ * @sample samples.text.Strings.decapitalizeFirst
+ */
+public actual fun String.decapitalizeFirst(): String {
+    return if (isNotEmpty() && !this[0].isLowerCase()) substring(0, 1).lowercase() + substring(1) else this
 }
 
 /**
