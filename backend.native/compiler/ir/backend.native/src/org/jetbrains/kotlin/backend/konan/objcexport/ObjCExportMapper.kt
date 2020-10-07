@@ -367,12 +367,12 @@ internal enum class NSNumberKind(val mappedKotlinClassId: ClassId?, val objCType
 
     // UNSIGNED_SHORT -> unsignedShort
     private val kindName = this.name.split('_')
-            .joinToString("") { it.lowercase().capitalizeFirst() }.decapitalizeFirst()
+            .joinToString("") { it.toLowerCase().capitalize() }.decapitalize()
 
 
     val valueSelector = kindName // unsignedShort
-    val initSelector = "initWith${kindName.capitalizeFirst()}:" // initWithUnsignedShort:
-    val factorySelector = "numberWith${kindName.capitalizeFirst()}:" // numberWithUnsignedShort:
+    val initSelector = "initWith${kindName.capitalize()}:" // initWithUnsignedShort:
+    val factorySelector = "numberWith${kindName.capitalize()}:" // numberWithUnsignedShort:
 
     constructor(
             primitiveType: PrimitiveType,

@@ -224,12 +224,12 @@ object KotlinTypes {
 
     private open class ClassifierAtPackage(val pkg: String) {
         operator fun getValue(thisRef: KotlinTypes, property: KProperty<*>): Classifier =
-                Classifier.topLevel(pkg, property.name.capitalizeFirst())
+                Classifier.topLevel(pkg, property.name.capitalize())
     }
 
     private open class TypeAtPackage(val pkg: String) {
         operator fun getValue(thisRef: KotlinTypes, property: KProperty<*>): KotlinClassifierType =
-                Classifier.topLevel(pkg, property.name.capitalizeFirst()).type
+                Classifier.topLevel(pkg, property.name.capitalize()).type
     }
 
     private object BuiltInType : TypeAtPackage("kotlin")

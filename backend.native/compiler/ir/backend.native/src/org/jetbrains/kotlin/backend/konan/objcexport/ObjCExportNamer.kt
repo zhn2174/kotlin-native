@@ -151,7 +151,7 @@ private class ObjCExportNamingHelper(
             ObjCExportNamer.ClassOrProtocolName(swiftName, buildString {
                 append(topLevelNamePrefix)
                 swiftName.split('.').forEachIndexed { index, part ->
-                    append(if (index == 0) part else part.capitalizeFirst())
+                    append(if (index == 0) part else part.capitalize())
                 }
             })
 
@@ -175,7 +175,7 @@ private class ObjCExportNamingHelper(
             } else {
                 // AB -> ABC
                 // A.B -> A.BC
-                append(ownName.capitalizeFirst())
+                append(ownName.capitalize())
             }
         } else {
             // AB, A.B -> ABC
@@ -184,9 +184,9 @@ private class ObjCExportNamingHelper(
                 append(containerName)
             } else {
                 append(containerName.substring(0, dotIndex))
-                append(containerName.substring(dotIndex + 1).capitalizeFirst())
+                append(containerName.substring(dotIndex + 1).capitalize())
             }
-            append(ownName.capitalizeFirst())
+            append(ownName.capitalize())
         }
     }
 
@@ -417,7 +417,7 @@ internal class ObjCExportNamerImpl(
                 val containingDeclaration = descriptor.containingDeclaration
                 if (containingDeclaration is ClassDescriptor) {
                     append(getClassOrProtocolObjCName(containingDeclaration))
-                            .append(descriptor.name.asString().toIdentifier().capitalizeFirst())
+                            .append(descriptor.name.asString().toIdentifier().capitalize())
 
                 } else if (containingDeclaration is PackageFragmentDescriptor) {
                     append(topLevelNamePrefix).appendTopLevelClassBaseName(descriptor)
@@ -469,7 +469,7 @@ internal class ObjCExportNamerImpl(
 
                         else -> ""
                     })
-                    append(name.capitalizeFirst())
+                    append(name.capitalize())
                 } else {
                     append(name)
                 }
@@ -547,7 +547,7 @@ internal class ObjCExportNamerImpl(
         assert(descriptor.kind == ClassKind.OBJECT)
 
         return objectInstanceSelectors.getOrPut(descriptor) {
-            val name = descriptor.name.asString().decapitalizeFirst().toIdentifier().mangleIfSpecialFamily("get")
+            val name = descriptor.name.asString().decapitalize().toIdentifier().mangleIfSpecialFamily("get")
 
             StringBuilder(name).mangledBySuffixUnderscores()
         }
@@ -559,8 +559,8 @@ internal class ObjCExportNamerImpl(
         return enumEntrySelectors.getOrPut(descriptor) {
             // FOO_BAR_BAZ -> fooBarBaz:
             val name = descriptor.name.asString().split('_').mapIndexed { index, s ->
-                val lower = s.lowercase()
-                if (index == 0) lower else lower.capitalizeFirst()
+                val lower = s.toLowerCase()
+                if (index == 0) lower else lower.capitalize()
             }.joinToString("").toIdentifier().mangleIfSpecialFamily("the")
 
             StringBuilder(name).mangledBySuffixUnderscores()
@@ -638,7 +638,7 @@ internal class ObjCExportNamerImpl(
 
         val candidate = when (this) {
             is PropertyGetterDescriptor -> this.correspondingProperty.name.asString()
-            is PropertySetterDescriptor -> "set${this.correspondingProperty.name.asString().capitalizeFirst()}"
+            is PropertySetterDescriptor -> "set${this.correspondingProperty.name.asString().capitalize()}"
             else -> this.name.asString()
         }.toIdentifier()
 
@@ -651,7 +651,7 @@ internal class ObjCExportNamerImpl(
             if (trimmed.startsWithWords(family)) {
                 // Then method can be detected as having special family by Objective-C compiler.
                 // mangle the name:
-                return prefix + this.capitalizeFirst()
+                return prefix + this.capitalize()
             }
         }
 
@@ -877,7 +877,7 @@ internal val ModuleDescriptor.namePrefix: String get() {
 
 fun abbreviate(name: String): String {
     val normalizedName = name
-            .capitalizeFirst()
+            .capitalize()
             .replace("-|\\.".toRegex(), "_")
 
     val uppers = normalizedName.filterIndexed { index, character -> index == 0 || character.isUpperCase() }

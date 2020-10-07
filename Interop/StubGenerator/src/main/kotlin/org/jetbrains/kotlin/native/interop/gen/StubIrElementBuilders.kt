@@ -388,7 +388,7 @@ internal class EnumStubBuilder(
         )
     }
 
-    private fun EnumConstant.isMoreCanonicalThan(other: EnumConstant): Boolean = with(other.name.lowercase()) {
+    private fun EnumConstant.isMoreCanonicalThan(other: EnumConstant): Boolean = with(other.name.toLowerCase()) {
         contains("min") || contains("max") ||
                 contains("first") || contains("last") ||
                 contains("begin") || contains("end")
