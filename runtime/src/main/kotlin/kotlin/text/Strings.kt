@@ -155,8 +155,7 @@ public external fun String.regionMatches(
 /**
  * Returns a copy of this string converted to upper case using the rules of the default locale.
  */
-@DeprecatedSinceKotlin("1.4")
-@Deprecated("Please use locale-insensitive alternative `uppercase()`", ReplaceWith("uppercase()"))
+@OptIn(ExperimentalStdlibApi::class)
 public actual fun String.toUpperCase(): String = uppercase()
 
 /**
@@ -164,14 +163,15 @@ public actual fun String.toUpperCase(): String = uppercase()
  *
  * @sample samples.text.Strings.uppercase
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 @SymbolName("Kotlin_String_uppercase")
 public actual external fun String.uppercase(): String
 
 /**
  * Returns a copy of this string converted to lower case using the rules of the default locale.
  */
-@DeprecatedSinceKotlin("1.4")
-@Deprecated("Please use locale-insensitive alternative `lowercase()`", ReplaceWith("lowercase()"))
+@OptIn(ExperimentalStdlibApi::class)
 public actual fun String.toLowerCase(): String = lowercase()
 
 /**
@@ -179,6 +179,8 @@ public actual fun String.toLowerCase(): String = lowercase()
  *
  * @sample samples.text.Strings.lowercase
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 @SymbolName("Kotlin_String_lowercase")
 public actual external fun String.lowercase(): String
 
@@ -197,8 +199,7 @@ private external fun toCharArray(string: String, start: Int, size: Int): CharArr
  * The title case of a character is usually the same as its upper case with several exceptions.
  * The particular list of characters with the special title case form depends on the underlying platform.
  */
-@DeprecatedSinceKotlin("1.4")
-@Deprecated("Please use locale-insensitive alternative `capitalizeFirst()`", ReplaceWith("capitalizeFirst()"))
+@OptIn(ExperimentalStdlibApi::class)
 public actual fun String.capitalize(): String = capitalizeFirst()
 
 /**
@@ -207,6 +208,8 @@ public actual fun String.capitalize(): String = capitalizeFirst()
  *
  * @sample samples.text.Strings.capitalizeFirst
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 public actual fun String.capitalizeFirst(): String {
     return if (isNotEmpty() && this[0].isLowerCase()) substring(0, 1).uppercase() + substring(1) else this
 }
@@ -215,8 +218,7 @@ public actual fun String.capitalizeFirst(): String {
  * Returns a copy of this string having its first letter lowercased using the rules of the default locale,
  * or the original string if it's empty or already starts with a lower case letter.
  */
-@DeprecatedSinceKotlin("1.4")
-@Deprecated("Please use locale-insensitive alternative `decapitalizeFirst()`", ReplaceWith("decapitalizeFirst()"))
+@OptIn(ExperimentalStdlibApi::class)
 public actual fun String.decapitalize(): String = decapitalizeFirst()
 
 /**
@@ -225,6 +227,8 @@ public actual fun String.decapitalize(): String = decapitalizeFirst()
  *
  * @sample samples.text.Strings.decapitalizeFirst
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 public actual fun String.decapitalizeFirst(): String {
     return if (isNotEmpty() && !this[0].isLowerCase()) substring(0, 1).lowercase() + substring(1) else this
 }

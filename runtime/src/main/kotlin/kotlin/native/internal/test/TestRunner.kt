@@ -173,6 +173,7 @@ internal class TestRunner(val suites: List<TestSuite>, args: Array<String>) {
         }
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun setLoggerFromArg(logger: String) {
         when (logger.uppercase()) {
             "GTEST" -> this.logger = GTestLogger()

@@ -67,6 +67,8 @@ external public fun Char.isLowerCase(): Boolean
  * Converts this character to upper case using Unicode mapping rules of the invariant locale.
  * @sample samples.text.Chars.uppercase
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 @SymbolName("Kotlin_Char_uppercase")
 external public actual fun Char.uppercase(): Char
 
@@ -74,6 +76,8 @@ external public actual fun Char.uppercase(): Char
  * Converts this character to lower case using Unicode mapping rules of the invariant locale.
  * @sample samples.text.Chars.lowercase
  */
+@SinceKotlin("1.4")
+@ExperimentalStdlibApi
 @SymbolName("Kotlin_Char_lowercase")
 external public actual fun Char.lowercase(): Char
 
@@ -119,6 +123,7 @@ internal actual fun checkRadix(radix: Int): Int {
 
 // TODO: Make public when supplementary codepoints are supported.
 /** Converts a unicode code point to lower case. */
+@OptIn(ExperimentalStdlibApi::class)
 internal fun Char.Companion.toLowerCase(codePoint: Int): Int =
     if (codePoint < MIN_SUPPLEMENTARY_CODE_POINT) {
         codePoint.toChar().lowercase().toInt()
@@ -127,6 +132,7 @@ internal fun Char.Companion.toLowerCase(codePoint: Int): Int =
     }
 
 /** Converts a unicode code point to upper case. */
+@OptIn(ExperimentalStdlibApi::class)
 internal fun Char.Companion.toUpperCase(codePoint: Int): Int =
     if (codePoint < MIN_SUPPLEMENTARY_CODE_POINT) {
         codePoint.toChar().uppercase().toInt()

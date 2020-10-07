@@ -29,6 +29,7 @@ open internal class RangeSet(charClass: AbstractCharClass, val ignoreCase: Boole
 
     val chars: AbstractCharClass = charClass.instance
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun accepts(startIndex: Int, testString: CharSequence): Int {
         if (ignoreCase) {
             val char = testString[startIndex]
