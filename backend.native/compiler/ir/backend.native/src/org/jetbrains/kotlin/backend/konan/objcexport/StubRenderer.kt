@@ -6,6 +6,12 @@
 package org.jetbrains.kotlin.backend.konan.objcexport
 
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithSource
+import org.jetbrains.kotlin.kdoc.psi.impl.KDocTag
+import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtPrimaryConstructor
+import org.jetbrains.kotlin.resolve.source.getPsi
 
 object StubRenderer {
     fun render(stub: Stub<*>): List<String> = collect {
@@ -18,6 +24,8 @@ object StubRenderer {
                 }
                 +"*/"
             }
+            this.descriptor?.findKDoc()?.let { +it.render() }
+
             when (this) {
                 is ObjCProtocol -> {
                     attributes.forEach {
@@ -202,3 +210,19 @@ internal fun formatGenerics(buffer: Appendable, generics:List<String>) {
     }
 }
 
+private fun KDocTag.render(): String = parent.text
+
+private fun DeclarationDescriptor.findKDoc(): KDocTag? {
+    if (this is DeclarationDescriptorWithSource) {
+        val psi = source.getPsi()
+        if (psi is KtDeclaration) {
+            if (psi is KtPrimaryConstructor)
+                return null  // to be rendered with class itself
+            val kdoc = psi.docComment
+            if (kdoc != null) {
+                return kdoc.getDefaultSection()
+            }
+        }
+    }
+    return null
+}
