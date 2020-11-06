@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.backend.konan.descriptors.isBuiltInOperator
 import org.jetbrains.kotlin.backend.common.ir.allParameters
 import org.jetbrains.kotlin.backend.konan.ir.isOverridableOrOverrides
 import org.jetbrains.kotlin.backend.konan.llvm.computeFunctionName
+import org.jetbrains.kotlin.backend.konan.llvm.computeSymbolName
 import org.jetbrains.kotlin.backend.konan.llvm.isExported
 import org.jetbrains.kotlin.backend.konan.llvm.localHash
 import org.jetbrains.kotlin.backend.konan.lower.DECLARATION_ORIGIN_BRIDGE_METHOD
@@ -637,7 +638,7 @@ internal object DataFlowIR {
 
             assert(irField.parent !is IrClass) { "All local properties initializers should've been lowered" }
             val attributes = FunctionAttributes.IS_GLOBAL_INITIALIZER or FunctionAttributes.RETURNS_UNIT
-            val symbol = FunctionSymbol.Private(privateFunIndex++, module, -1, attributes, null, null, takeName { "${irField.symbolName}_init" })
+            val symbol = FunctionSymbol.Private(privateFunIndex++, module, -1, attributes, null, null, takeName { "${irField.computeSymbolName()}_init" })
 
             functionMap[irField] = symbol
 
