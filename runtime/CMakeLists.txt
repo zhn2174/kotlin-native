@@ -22,7 +22,6 @@ add_executable(runtime
 	src/main/cpp/Atomic.cpp
 	src/main/cpp/Boxing.cpp
 	src/main/cpp/Console.cpp
-	src/main/cpp/CyclicCollector.cpp
 	src/main/cpp/Exceptions.cpp
 	src/main/cpp/ExecFormat.cpp
 	src/main/cpp/Interop.cpp
@@ -30,7 +29,6 @@ add_executable(runtime
 	src/main/cpp/KAssert.cpp
 	src/main/cpp/KString.cpp
 	src/main/cpp/KotlinMath.cpp
-	src/main/cpp/Memory.cpp
 	src/main/cpp/MemorySharedRefs.cpp
 	src/main/cpp/Natives.cpp
 	src/main/cpp/ObjCExceptions.cpp
@@ -59,6 +57,12 @@ add_executable(runtime
 	src/release/cpp/SourceInfo.cpp
 	src/strict/cpp/MemoryImpl.cpp
 
+	src/legacymm/cpp/CyclicCollector.cpp
+	src/legacymm/cpp/Memory.cpp
+
+	#src/mm/cpp/Stubs.cpp
+	#src/mm/cpp/MemoryState.cpp
+
 	src/opt_alloc/cpp/AllocImpl.cpp
 	src/std_alloc/cpp/AllocImpl.cpp
 
@@ -84,8 +88,6 @@ add_executable(runtime
 	src/test_support/cpp/CompilerGenerated.cpp
 	src/test_support/cpp/CompilerGeneratedObjC.mm
 	src/test_support/cpp/TestLauncher.cpp
-
-	src/main/cpp/ArraysTest.cpp
 )
 
 target_compile_definitions(runtime PUBLIC "-DKONAN_OSX=1")

@@ -18,6 +18,7 @@
 #include <stdio.h>
 
 #include <cstddef> // for offsetof
+#include <string>
 
 // Allow concurrent global cycle collector.
 #define USE_CYCLIC_GC 0
@@ -636,6 +637,9 @@ struct MemoryState {
 
   uint64_t allocSinceLastGc;
   uint64_t allocSinceLastGcThreshold;
+
+  // TODO: volatile?
+  GCState gcState;
 #endif // USE_GC
 
   // A stack of initializing singletons.
@@ -2081,6 +2085,7 @@ void makeShareable(ContainerHeader* container) {
 
 template<bool Strict>
 void setStackRef(ObjHeader** location, const ObjHeader* object) {
+  AssertGCStateUnsafe();
   MEMORY_LOG("SetStackRef *%p: %p\n", location, object)
   UPDATE_REF_EVENT(memoryState, nullptr, object, location, 1);
   if (!Strict && object != nullptr)
@@ -2090,6 +2095,7 @@ void setStackRef(ObjHeader** location, const ObjHeader* object) {
 
 template<bool Strict>
 void setHeapRef(ObjHeader** location, const ObjHeader* object) {
+  AssertGCStateUnsafe();
   MEMORY_LOG("SetHeapRef *%p: %p\n", location, object)
   UPDATE_REF_EVENT(memoryState, nullptr, object, location, 0);
   if (object != nullptr)
@@ -2098,6 +2104,7 @@ void setHeapRef(ObjHeader** location, const ObjHeader* object) {
 }
 
 void zeroHeapRef(ObjHeader** location) {
+  AssertGCStateUnsafe();
   MEMORY_LOG("ZeroHeapRef %p\n", location)
   auto* value = *location;
   if (reinterpret_cast<uintptr_t>(value) > 1) {
@@ -2109,6 +2116,7 @@ void zeroHeapRef(ObjHeader** location) {
 
 template<bool Strict>
 void zeroStackRef(ObjHeader** location) {
+  AssertGCStateUnsafe();
   MEMORY_LOG("ZeroStackRef %p\n", location)
   if (Strict) {
     *location = nullptr;
@@ -2121,6 +2129,7 @@ void zeroStackRef(ObjHeader** location) {
 
 template <bool Strict>
 void updateHeapRef(ObjHeader** location, const ObjHeader* object) {
+  AssertGCStateUnsafe();
   UPDATE_REF_EVENT(memoryState, *location, object, location, 0);
   ObjHeader* old = *location;
   if (old != object) {
@@ -2136,6 +2145,7 @@ void updateHeapRef(ObjHeader** location, const ObjHeader* object) {
 
 template <bool Strict>
 void updateStackRef(ObjHeader** location, const ObjHeader* object) {
+  AssertGCStateUnsafe();
   UPDATE_REF_EVENT(memoryState, *location, object, location, 1)
   RuntimeAssert(object != reinterpret_cast<ObjHeader*>(1), "Markers disallowed here");
   if (Strict) {
@@ -2156,10 +2166,12 @@ void updateStackRef(ObjHeader** location, const ObjHeader* object) {
 
 template <bool Strict>
 void updateReturnRef(ObjHeader** returnSlot, const ObjHeader* value) {
+  AssertGCStateUnsafe();
   updateStackRef<Strict>(returnSlot, value);
 }
 
 void updateHeapRefIfNull(ObjHeader** location, const ObjHeader* object) {
+  AssertGCStateUnsafe();
   if (object != nullptr) {
 #if KONAN_NO_THREADS
     ObjHeader* old = *location;
@@ -2202,6 +2214,7 @@ inline void checkIfForceCyclicGcNeeded(MemoryState* state) {
 
 template <bool Strict>
 OBJ_GETTER(allocInstance, const TypeInfo* type_info) {
+  AssertGCStateUnsafe(); // TODO: Where should be the state transition?
   RuntimeAssert(type_info->instanceSize_ >= 0, "must be an object");
   auto* state = memoryState;
 #if USE_GC
@@ -2232,6 +2245,7 @@ OBJ_GETTER(allocInstance, const TypeInfo* type_info) {
 
 template <bool Strict>
 OBJ_GETTER(allocArrayInstance, const TypeInfo* type_info, int32_t elements) {
+  AssertGCStateUnsafe(); // TODO: Where should be the state transition?
   RuntimeAssert(type_info->instanceSize_ < 0, "must be an array");
   if (elements < 0) ThrowIllegalArgumentException();
   auto* state = memoryState;
@@ -2252,6 +2266,7 @@ OBJ_GETTER(allocArrayInstance, const TypeInfo* type_info, int32_t elements) {
 template <bool Strict>
 OBJ_GETTER(initInstance,
     ObjHeader** location, const TypeInfo* typeInfo, void (*ctor)(ObjHeader*)) {
+  AssertGCStateUnsafe();
   ObjHeader* value = *location;
   if (value != nullptr) {
     // OK'ish, inited by someone else.
@@ -2302,6 +2317,7 @@ OBJ_GETTER(initSharedInstance,
   }
 #endif  // KONAN_NO_EXCEPTIONS
 #else  // KONAN_NO_THREADS
+  AssertGCStateUnsafe(); // TODO: Should we add the same check in KONAN_NO_THREADS ^^^
   // Search from the top of the stack.
   for (auto it = memoryState->initializingSingletons.rbegin(); it != memoryState->initializingSingletons.rend(); ++it) {
     if (it->first == location) {
@@ -2311,6 +2327,7 @@ OBJ_GETTER(initSharedInstance,
 
   ObjHeader* initializing = reinterpret_cast<ObjHeader*>(1);
 
+  // TODO: Shouldn't we have the safe state during this lock?
   // Spin lock.
   ObjHeader* value = nullptr;
   while ((value = __sync_val_compare_and_swap(location, nullptr, initializing)) == initializing);
@@ -2363,6 +2380,8 @@ inline int32_t computeCookie() {
 
 OBJ_GETTER(swapHeapRefLocked,
     ObjHeader** location, ObjHeader* expectedValue, ObjHeader* newValue, int32_t* spinlock, int32_t* cookie) {
+  // TODO: We have a lock here. Think about it.
+  AssertGCStateUnsafe();
   lock(spinlock);
   ObjHeader* oldValue = *location;
   bool shallRemember = false;
@@ -2393,6 +2412,8 @@ OBJ_GETTER(swapHeapRefLocked,
 }
 
 void setHeapRefLocked(ObjHeader** location, ObjHeader* newValue, int32_t* spinlock, int32_t* cookie) {
+  // TODO: We have a lock here.
+  AssertGCStateUnsafe();
   lock(spinlock);
   ObjHeader* oldValue = *location;
 #if USE_CYCLIC_GC
@@ -2408,6 +2429,10 @@ void setHeapRefLocked(ObjHeader** location, ObjHeader* newValue, int32_t* spinlo
 }
 
 OBJ_GETTER(readHeapRefLocked, ObjHeader** location, int32_t* spinlock, int32_t* cookie) {
+  // TODO: We have a lock here. Do we even need to have the unsafe state here?
+  // TODO: Why do we even need all these methods?
+  // TODO: What is remember container?
+  AssertGCStateUnsafe();
   MEMORY_LOG("ReadHeapRefLocked: %p\n", location)
   lock(spinlock);
   ObjHeader* value = *location;
@@ -2426,6 +2451,8 @@ OBJ_GETTER(readHeapRefLocked, ObjHeader** location, int32_t* spinlock, int32_t* 
 }
 
 OBJ_GETTER(readHeapRefNoLock, ObjHeader* object, KInt index) {
+  // TODO: Do we need to have the unsafe state here? What is the rememberNewContainer?
+  AssertGCStateUnsafe();
   MEMORY_LOG("ReadHeapRefNoLock: %p index %d\n", object, index)
   ObjHeader** location = reinterpret_cast<ObjHeader**>(
     reinterpret_cast<uintptr_t>(object) + object->type_info()->objOffsets_[index]);
@@ -2441,6 +2468,7 @@ OBJ_GETTER(readHeapRefNoLock, ObjHeader* object, KInt index) {
 
 template <bool Strict>
 void enterFrame(ObjHeader** start, int parameters, int count) {
+  AssertGCStateUnsafe(); // Changing the shadow stack.
   MEMORY_LOG("EnterFrame %p: %d parameters %d locals\n", start, parameters, count)
   FrameOverlay* frame = reinterpret_cast<FrameOverlay*>(start);
   if (Strict) {
@@ -2454,6 +2482,7 @@ void enterFrame(ObjHeader** start, int parameters, int count) {
 
 template <bool Strict>
 void leaveFrame(ObjHeader** start, int parameters, int count) {
+  AssertGCStateUnsafe(); // Access to the shadow stack. TODO: Do we really need to have the unafe state here?
   MEMORY_LOG("LeaveFrame %p: %d parameters %d locals\n", start, parameters, count)
   FrameOverlay* frame = reinterpret_cast<FrameOverlay*>(start);
   if (Strict) {
@@ -2594,6 +2623,8 @@ OBJ_GETTER(adoptStablePointer, KNativePtr pointer) {
 }
 
 bool clearSubgraphReferences(ObjHeader* root, bool checked) {
+  // TODO: Do we need the unsafe state here?
+  AssertGCStateUnsafe();
 #if USE_GC
   MEMORY_LOG("ClearSubgraphReferences %p\n", root)
   if (root == nullptr) return true;
@@ -2669,6 +2700,7 @@ bool clearSubgraphReferences(ObjHeader* root, bool checked) {
 }
 
 void freezeAcyclic(ContainerHeader* rootContainer, ContainerHeaderSet* newlyFrozen) {
+  // TODO: It doesn't change the object graph so probably we don't need the unsafe state here.
   KStdDeque<ContainerHeader*> queue;
   queue.push_back(rootContainer);
   while (!queue.empty()) {
@@ -2830,6 +2862,8 @@ void runFreezeHooksRecursive(ObjHeader* root) {
  * references could be passed across multiple threads.
  */
 void freezeSubgraph(ObjHeader* root) {
+  // TODO: May be more granular in this function?
+  AssertGCStateUnsafe();
   if (root == nullptr) return;
   // First check that passed object graph has no cycles.
   // If there are cycles - run graph condensation on cyclic graphs using Kosoraju-Sharir.
@@ -3323,6 +3357,7 @@ RUNTIME_NOTHROW void UpdateReturnRefRelaxed(ObjHeader** returnSlot, const ObjHea
 }
 
 RUNTIME_NOTHROW void ZeroArrayRefs(ArrayHeader* array) {
+  AssertGCStateUnsafe()
   for (uint32_t index = 0; index < array->count_; ++index) {
     ObjHeader** location = ArrayAddressOfElementAt(array, index);
     zeroHeapRef(location);
@@ -3614,6 +3649,16 @@ RUNTIME_NOTHROW void PerformFullGC(MemoryState* memory) {
 void CheckGlobalsAccessible() {
     if (!::memoryState->isMainThread)
         ThrowIncorrectDereferenceException();
+}
+
+void toSafeGCState() {
+  AssertGCState(GCState::UNSAFE);
+  ::memoryState->gcState = GCState::SAFE;
+}
+
+void toUnsafeGCState() {
+  AssertGCState(GCState::SAFE);
+  ::memoryState->gcState = GCState::UNSAFE;
 }
 
 } // extern "C"

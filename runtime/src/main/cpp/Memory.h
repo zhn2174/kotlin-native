@@ -94,6 +94,7 @@ struct ArrayHeader {
   uint32_t count_;
 };
 
+// TODO: Not sure if we need to switch to the unsafe state in these functions.
 ALWAYS_INLINE bool isFrozen(const ObjHeader* obj);
 ALWAYS_INLINE bool isPermanentOrFrozen(const ObjHeader* obj);
 ALWAYS_INLINE bool isShareable(const ObjHeader* obj);
@@ -119,6 +120,39 @@ extern "C" {
     ObjHeader* __result = name(__VA_ARGS__, OBJ_RESULT);  \
     return __result;                                      \
   }
+
+// TODO: Probably move to the new MM
+// TODO: Find better name.
+enum GCState {
+    SAFE, UNSAFE
+};
+
+// TODO: Make them private
+const char* gcstateToString(GCState state) {
+  switch (state) {
+    case SAFE:
+      return "SAFE";
+    case UNSAFE:
+      return "UNSAFE";
+    default:
+      __builtin_unreachable();
+  }
+}
+
+std::string formatAssertionMessageForGCStates(GCState expected, GCState actual) {
+  return std::string("Unexpected GC state. Expected: ") + gcstateToString(expected) + ". Actual: " + gcstateToString(actual);
+}
+
+#define AssertGCState(expected) do \
+    RuntimeAssert(::memoryState->gcState == expected, formatAssertionMessageForGCStates(expected, ::memoryState->gcState).c_str()) \
+  while(false)
+
+#define AssertGCStateUnsafe() AssertGCState(GCState::UNSAFE)
+#define AssertGCStateSafe() AssertGCState(GCState::SAFE)
+
+void assertGCState(GCState expected);
+void toSafeGCState();
+void toUnsafeGCState();
 
 struct MemoryState;
 
