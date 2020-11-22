@@ -8,6 +8,7 @@ import java.io.File
 
 /**
  * A task that copies samples and replaces direct repository URLs with ones provided by the cache-redirector service.
+ * This task also adds kotlin compiler repository from the project's gradle.properties file.
  */
 open class CopySamples: Copy() {
     @InputDirectory
@@ -17,6 +18,7 @@ open class CopySamples: Copy() {
         from(samplesDir) {
             it.exclude("**/*.gradle.kts")
             it.exclude("**/*.gradle")
+            it.exclude("**/gradle.properties")
         }
         from(samplesDir) {
             it.include("**/*.gradle")
@@ -32,6 +34,22 @@ open class CopySamples: Copy() {
             it.filter { line ->
                 val repo = line.trim()
                 replacements[repo]?.let { r -> line.replace(repo, r) } ?: line
+            }
+        }
+        from(samplesDir) {
+            it.include("**/gradle.properties")
+
+            val kotlinVersion = project.property("kotlinVersion") as? String
+                ?: throw IllegalArgumentException("Property kotlinVersion should be specified in the root project")
+            val kotlinCompilerRepo = project.property("kotlinCompilerRepo") as? String
+                ?: throw IllegalArgumentException("Property kotlinCompilerRepo should be specified in the root project")
+
+            it.filter { line ->
+                when {
+                    line.contains("kotlin_version") ->  "kotlin_version=$kotlinVersion"
+                    line.contains("kotlinCompilerRepo") -> "kotlinCompilerRepo=$kotlinCompilerRepo"
+                    else -> line
+                }
             }
         }
     }
