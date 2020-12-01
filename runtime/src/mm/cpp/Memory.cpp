@@ -55,12 +55,21 @@ ALWAYS_INLINE mm::ThreadData* GetThreadData(MemoryState* state) {
 
 } // namespace
 
+ALWAYS_INLINE bool isShareable(const ObjHeader* obj) {
+    // TODO: Remove when legacy MM is gone.
+    return true;
+}
+
 extern "C" MemoryState* InitMemory(bool firstRuntime) {
     return ToMemoryState(mm::ThreadRegistry::Instance().RegisterCurrentThread());
 }
 
 extern "C" void DeinitMemory(MemoryState* state, bool destroyRuntime) {
     mm::ThreadRegistry::Instance().Unregister(FromMemoryState(state));
+}
+
+extern "C" void RestoreMemory(MemoryState*) {
+    // TODO: Remove when legacy MM is gone.
 }
 
 extern "C" OBJ_GETTER(InitSingleton, ObjHeader** location, const TypeInfo* typeInfo, void (*ctor)(ObjHeader*)) {
@@ -92,6 +101,26 @@ extern "C" RUNTIME_NOTHROW void ClearTLS(MemoryState* memory) {
 
 extern "C" RUNTIME_NOTHROW ObjHeader** LookupTLS(void** key, int index) {
     return mm::ThreadRegistry::Instance().CurrentThreadData()->tls().Lookup(key, index);
+}
+
+extern "C" RUNTIME_NOTHROW void GC_RegisterWorker(void* worker) {
+    // TODO: Remove when legacy MM is gone.
+    // Nothing to do
+}
+
+extern "C" RUNTIME_NOTHROW void GC_UnregisterWorker(void* worker) {
+    // TODO: Remove when legacy MM is gone.
+    // Nothing to do
+}
+
+extern "C" RUNTIME_NOTHROW void GC_CollectorCallback(void* worker) {
+    // TODO: Remove when legacy MM is gone.
+    // Nothing to do
+}
+
+extern "C" bool Kotlin_Any_isShareable(ObjHeader* thiz) {
+    // TODO: Remove when legacy MM is gone.
+    return true;
 }
 
 extern "C" RUNTIME_NOTHROW void* CreateStablePointer(ObjHeader* object) {
@@ -146,4 +175,9 @@ extern "C" bool IsForeignRefAccessible(ObjHeader* object, ForeignRefContext cont
 extern "C" void AdoptReferenceFromSharedVariable(ObjHeader* object) {
     // TODO: Remove when legacy MM is gone.
     // Nothing to do.
+}
+
+void CheckGlobalsAccessible() {
+    // TODO: Remove when legacy MM is gone.
+    // Always accessible
 }
