@@ -42,4 +42,7 @@ void EnsureDeclarationsEmitted() {
     ensureUsed(FreezeSubgraph);
     ensureUsed(FreezeSubgraph);
     ensureUsed(CheckGlobalsAccessible);
+
+    ensureUsed(toSafeGCState);
+    ensureUsed(toUnsafeGCState);
 }

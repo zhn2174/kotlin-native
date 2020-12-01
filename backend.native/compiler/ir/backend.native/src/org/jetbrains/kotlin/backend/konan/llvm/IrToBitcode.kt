@@ -123,6 +123,8 @@ internal interface CodeContext {
 
     val exceptionHandler: ExceptionHandler
 
+    val exceptionHandlerExternal: ExceptionHandler
+
     fun genThrow(exception: LLVMValueRef)
 
     val stackLocalsManager: StackLocalsManager
@@ -241,6 +243,8 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
         override fun genContinue(destination: IrContinue) = unsupported()
 
         override val exceptionHandler get() = unsupported()
+
+        override val exceptionHandlerExternal get() = unsupported()
 
         override fun genThrow(exception: LLVMValueRef) = unsupported()
 
@@ -669,6 +673,8 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
 
         override val exceptionHandler get() = ExceptionHandler.Caller
 
+        override val exceptionHandlerExternal get() = ExceptionHandler.CallerExternal
+
         override fun genThrow(exception: LLVMValueRef) {
             val objHeaderPtr = functionGenerationContext.bitcast(codegen.kObjHeaderPtr, exception)
             val args = listOf(objHeaderPtr)
@@ -1030,7 +1036,16 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
         private val landingpad: LLVMBasicBlockRef by lazy {
             using(outerContext) {
                 functionGenerationContext.basicBlock("landingpad", endLocationInfoFromScope()) {
-                    genLandingpad()
+                    genLandingpad(false)
+                }
+            }
+        }
+
+        // TODO: kdoc
+        private val landingpadExternal: LLVMBasicBlockRef by lazy {
+            using(outerContext) {
+                functionGenerationContext.basicBlock("landingpad", endLocationInfoFromScope()) {
+                    genLandingpad(true)
                 }
             }
         }
@@ -1074,16 +1089,22 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
          *
          * TODO: why does `clang++` check `typeid` even if there is only one catch clause?
          */
-        private fun genLandingpad() {
+        private fun genLandingpad(switchGCState: Boolean) {
             with(functionGenerationContext) {
-                val exceptionPtr = catchKotlinException()
+                val exceptionPtr = catchKotlinException(switchGCState)
                 jumpToHandler(exceptionPtr)
             }
         }
 
-        override val exceptionHandler: ExceptionHandler get() = object : ExceptionHandler.Local() {
-            override val unwind get() = landingpad
-        }
+        override val exceptionHandler: ExceptionHandler
+            get() = object : ExceptionHandler.Local() {
+                override val unwind get() = landingpad
+            }
+
+        override val exceptionHandlerExternal: ExceptionHandler
+            get() = object : ExceptionHandler.Local() {
+                override val unwind get() = landingpadExternal
+            }
 
         override fun genThrow(exception: LLVMValueRef) {
             jumpToHandler(exception)
@@ -2154,6 +2175,7 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
         return when {
             function.isTypedIntrinsic -> intrinsicGenerator.evaluateCall(callee, args)
             function.isBuiltInOperator -> evaluateOperatorCall(callee, argsWithContinuationIfNeeded)
+            // TODO: probably here!
             else -> evaluateSimpleFunctionCall(function, argsWithContinuationIfNeeded, resultLifetime, callee.superQualifierSymbol?.owner)
         }
     }
@@ -2320,12 +2342,31 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
     private fun call(function: IrFunction, llvmFunction: LLVMValueRef, args: List<LLVMValueRef>,
                      resultLifetime: Lifetime): LLVMValueRef {
 
-        val exceptionHandler = function.annotations.findAnnotation(RuntimeNames.filterExceptions)?.let {
-            val foreignExceptionMode = ForeignExceptionMode.byValue(it.getAnnotationValueOrNull<String>("mode"))
-            functionGenerationContext.filteringExceptionHandler(currentCodeContext, foreignExceptionMode)
-        } ?: currentCodeContext.exceptionHandler
+        // TODO: Carefully reconsider this condition.
+        val filterExceptionsAnnotation = function.annotations.findAnnotation(RuntimeNames.filterExceptions)
+
+        val needsSafeGCState = function.isExternal || filterExceptionsAnnotation != null
+
+        // TODO: ExceptionHandler should contain two unwind blocks: for safe calls and for unsafe calls.
+        val exceptionHandler = when {
+            filterExceptionsAnnotation != null -> {
+                val foreignExceptionMode = ForeignExceptionMode.byValue(filterExceptionsAnnotation.getAnnotationValueOrNull<String>("mode"))
+                functionGenerationContext.filteringExceptionHandler(currentCodeContext, foreignExceptionMode)
+            }
+            needsSafeGCState -> currentCodeContext.exceptionHandlerExternal
+            else -> currentCodeContext.exceptionHandler
+        }
+
+        if (needsSafeGCState) {
+            call(context.llvm.toSafeGCState, emptyList())
+        }
 
         val result = call(llvmFunction, args, resultLifetime, exceptionHandler)
+
+        if (needsSafeGCState) { // TODO: Move to else-branch of the if below?
+            call(context.llvm.toUnsafeGCState, emptyList())
+        }
+
         if (!function.isSuspend && function.returnType.isNothing()) {
             functionGenerationContext.unreachable()
         }

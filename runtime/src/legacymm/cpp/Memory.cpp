@@ -639,7 +639,7 @@ struct MemoryState {
   uint64_t allocSinceLastGcThreshold;
 
   // TODO: volatile?
-  GCState gcState;
+  volatile GCState gcState;
 #endif // USE_GC
 
   // A stack of initializing singletons.
@@ -3357,7 +3357,7 @@ RUNTIME_NOTHROW void UpdateReturnRefRelaxed(ObjHeader** returnSlot, const ObjHea
 }
 
 RUNTIME_NOTHROW void ZeroArrayRefs(ArrayHeader* array) {
-  AssertGCStateUnsafe()
+  AssertGCStateUnsafe();
   for (uint32_t index = 0; index < array->count_; ++index) {
     ObjHeader** location = ArrayAddressOfElementAt(array, index);
     zeroHeapRef(location);
@@ -3651,14 +3651,17 @@ void CheckGlobalsAccessible() {
         ThrowIncorrectDereferenceException();
 }
 
-void toSafeGCState() {
-  AssertGCState(GCState::UNSAFE);
-  ::memoryState->gcState = GCState::SAFE;
+// TODO: Move to MM and provide a proper API.
+RUNTIME_NOTHROW ALWAYS_INLINE void toSafeGCState() {
+    AssertGCState(GCState::UNSAFE);
+    GC_LOG("Switch to safe GC state\n")
+    ::memoryState->gcState = GCState::SAFE;
 }
 
-void toUnsafeGCState() {
-  AssertGCState(GCState::SAFE);
-  ::memoryState->gcState = GCState::UNSAFE;
+RUNTIME_NOTHROW ALWAYS_INLINE void toUnsafeGCState() {
+    AssertGCState(GCState::SAFE);
+    GC_LOG("Switch to unsafe GC state\n")
+    ::memoryState->gcState = GCState::UNSAFE;
 }
 
 } // extern "C"

@@ -532,6 +532,9 @@ internal class Llvm(val context: Context, val llvmModule: LLVMModuleRef) {
     val getObjCKotlinTypeInfo by lazy { importRtFunction("GetObjCKotlinTypeInfo") }
     val missingInitImp by lazy { importRtFunction("MissingInitImp") }
 
+    val toSafeGCState by lazy { importRtFunction("toSafeGCState") }
+    val toUnsafeGCState by lazy { importRtFunction("toUnsafeGCState") }
+
     val Kotlin_Interop_DoesObjectConformToProtocol by lazyRtFunction
     val Kotlin_Interop_IsObjectKindOfClass by lazyRtFunction
 

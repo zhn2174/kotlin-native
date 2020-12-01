@@ -86,6 +86,7 @@ internal class CodeGenerator(override val context: Context) : ContextUtils {
 internal sealed class ExceptionHandler {
     object None : ExceptionHandler()
     object Caller : ExceptionHandler()
+    object CallerExternal : ExceptionHandler() // TODO: Merge it with just Caller and rework using it.
     abstract class Local : ExceptionHandler() {
         abstract val unwind: LLVMBasicBlockRef
     }
@@ -332,7 +333,9 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
     private val stackLocalsInitBb = basicBlockInFunction("stack_locals_init", startLocation)
     private val entryBb = basicBlockInFunction("entry", startLocation)
     private val epilogueBb = basicBlockInFunction("epilogue", endLocation)
+
     private val cleanupLandingpad = basicBlockInFunction("cleanup_landingpad", endLocation)
+    private val cleanupLandingpadExternal = basicBlockInFunction("cleanup_landingpad_external", endLocation)
 
     val stackLocalsManager = StackLocalsManagerImpl(this, stackLocalsInitBb)
 
@@ -519,6 +522,7 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
         } else {
             val unwind = when (exceptionHandler) {
                 ExceptionHandler.Caller -> cleanupLandingpad
+                ExceptionHandler.CallerExternal -> cleanupLandingpadExternal
                 is ExceptionHandler.Local -> exceptionHandler.unwind
 
                 ExceptionHandler.None -> {
@@ -718,6 +722,9 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
             }
             LLVMAddClause(landingpad, LLVMConstNull(kInt8Ptr))
 
+            // TODO: Is this the best place?
+            call(context.llvm.toUnsafeGCState, emptyList())
+
             val fatalForeignExceptionBlock = basicBlock("fatalForeignException", position()?.start)
             val forwardKotlinExceptionBlock = basicBlock("forwardKotlinException", position()?.start)
 
@@ -784,7 +791,7 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
         val lpBlock = basicBlock("kotlinExceptionHandler", position()?.end)
 
         appendingTo(lpBlock) {
-            val exception = catchKotlinException()
+            val exception = catchKotlinException(false) // TODO: Is it really false?
             block(exception)
         }
 
@@ -793,10 +800,14 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
         }
     }
 
-    fun catchKotlinException(): LLVMValueRef {
+    fun catchKotlinException(switchGCState: Boolean): LLVMValueRef {
         val landingpadResult = gxxLandingpad(numClauses = 1, name = "lp")
 
         LLVMAddClause(landingpadResult, LLVMConstNull(kInt8Ptr))
+
+        if (switchGCState) {
+            call(context.llvm.toUnsafeGCState, emptyList())
+        }
 
         // TODO: properly handle C++ exceptions: currently C++ exception can be thrown out from try-finally
         // bypassing the finally block.
@@ -1267,15 +1278,23 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
             }
         }
 
-        appendingTo(cleanupLandingpad) {
+        // TODO: Move out?
+        fun FunctionGenerationContext.buildCleanUpLandingpad(switchToUnsafeGCState: Boolean) {
             val landingpad = gxxLandingpad(numClauses = 0)
             LLVMSetCleanup(landingpad, 1)
 
-            forwardingForeignExceptionsTerminatedWith?.let { terminator ->
+            forwardingForeignExceptionsTerminatedWith?.let {
                 // Catch all but Kotlin exceptions.
                 val clause = ConstArray(int8TypePtr, listOf(kotlinExceptionRtti))
                 LLVMAddClause(landingpad, clause.llvm)
+            }
 
+            if (switchToUnsafeGCState) {
+                // TODO: Move generation of this call to a separate function
+                call(context.llvm.toUnsafeGCState, emptyList())
+            }
+
+            forwardingForeignExceptionsTerminatedWith?.let { terminator ->
                 val bbCleanup = basicBlock("forwardException", position()?.end)
                 val bbUnexpected = basicBlock("unexpectedException", position()?.end)
 
@@ -1302,6 +1321,10 @@ internal class FunctionGenerationContext(val function: LLVMValueRef,
             releaseVars()
             LLVMBuildResume(builder, landingpad)
         }
+
+        // TODO: Can we do it better?
+        appendingTo(cleanupLandingpad) { buildCleanUpLandingpad(false) }
+        appendingTo(cleanupLandingpadExternal) { buildCleanUpLandingpad(true) }
 
         returns.clear()
         vars.clear()

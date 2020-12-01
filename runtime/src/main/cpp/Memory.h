@@ -17,6 +17,8 @@
 #ifndef RUNTIME_MEMORY_H
 #define RUNTIME_MEMORY_H
 
+#include <string>
+
 #include "KAssert.h"
 #include "Common.h"
 #include "TypeInfo.h"
@@ -127,22 +129,6 @@ enum GCState {
     SAFE, UNSAFE
 };
 
-// TODO: Make them private
-const char* gcstateToString(GCState state) {
-  switch (state) {
-    case SAFE:
-      return "SAFE";
-    case UNSAFE:
-      return "UNSAFE";
-    default:
-      __builtin_unreachable();
-  }
-}
-
-std::string formatAssertionMessageForGCStates(GCState expected, GCState actual) {
-  return std::string("Unexpected GC state. Expected: ") + gcstateToString(expected) + ". Actual: " + gcstateToString(actual);
-}
-
 #define AssertGCState(expected) do \
     RuntimeAssert(::memoryState->gcState == expected, formatAssertionMessageForGCStates(expected, ::memoryState->gcState).c_str()) \
   while(false)
@@ -150,9 +136,9 @@ std::string formatAssertionMessageForGCStates(GCState expected, GCState actual) 
 #define AssertGCStateUnsafe() AssertGCState(GCState::UNSAFE)
 #define AssertGCStateSafe() AssertGCState(GCState::SAFE)
 
-void assertGCState(GCState expected);
-void toSafeGCState();
-void toUnsafeGCState();
+ALWAYS_INLINE void assertGCState(GCState expected);
+RUNTIME_NOTHROW ALWAYS_INLINE void toSafeGCState();
+RUNTIME_NOTHROW ALWAYS_INLINE void toUnsafeGCState();
 
 struct MemoryState;
 
@@ -293,6 +279,27 @@ void CheckGlobalsAccessible();
 #ifdef __cplusplus
 }
 #endif
+
+namespace {
+
+// TODO: Make them private
+const char* gcstateToString(GCState state) {
+    switch (state) {
+        case SAFE:
+            return "SAFE";
+        case UNSAFE:
+            return "UNSAFE";
+        default:
+            __builtin_unreachable();
+    }
+}
+
+std::string formatAssertionMessageForGCStates(GCState expected, GCState actual) {
+    return std::string("Unexpected GC state. Expected: ") + gcstateToString(expected) + ". Actual: " +
+           gcstateToString(actual);
+}
+
+} // namespace
 
 struct FrameOverlay {
   void* arena;
