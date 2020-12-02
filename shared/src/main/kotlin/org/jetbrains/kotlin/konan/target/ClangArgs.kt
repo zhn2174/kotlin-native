@@ -33,7 +33,7 @@ internal object Android {
 
 class ClangArgs(private val configurables: Configurables) : Configurables by configurables {
 
-    val targetArg = if (configurables is TargetableConfigurables)
+    private val targetArg = if (configurables is TargetableConfigurables)
         configurables.targetArg
     else null
 
@@ -75,7 +75,7 @@ class ClangArgs(private val configurables: Configurables) : Configurables by con
                 return configurables.osVersionMin
             }
 
-    val specificClangArgs: List<String> = when (target) {
+    private val specificClangArgs: List<String> = when (target) {
         KonanTarget.LINUX_X64 -> emptyList()
 
         KonanTarget.LINUX_ARM32_HFP -> listOf(
@@ -223,10 +223,10 @@ class ClangArgs(private val configurables: Configurables) : Configurables by con
             // We workaround the problem with -isystem flag below.
             listOf("-isystem", "$absoluteLlvmHome/lib/clang/$llvmVersion/include", *clangArgs)
 
-    val targetClangCmd
+    private val targetClangCmd
             = listOf("${absoluteLlvmHome}/bin/clang") + clangArgs
 
-    val targetClangXXCmd
+    private val targetClangXXCmd
             = listOf("${absoluteLlvmHome}/bin/clang++") + clangArgs
 
     fun clangC(vararg userArgs: String) = targetClangCmd + userArgs.asList()
