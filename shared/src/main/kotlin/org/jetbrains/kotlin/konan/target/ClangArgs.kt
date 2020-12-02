@@ -59,7 +59,13 @@ class ClangArgs(private val configurables: Configurables) : Configurables by con
                 || configurables is WasmConfigurables
                 || configurables is AndroidConfigurables
         if (!hasCustomSysroot) {
-            add(listOf("--sysroot=$absoluteTargetSysRoot"))
+            when (configurables) {
+                // isysroot and sysroot on darwin are _almost_ synonyms.
+                // The first one parses SDKSettings.json while second one is not.
+                is AppleConfigurables -> add(listOf("-isysroot", absoluteTargetSysRoot))
+                else -> add(listOf("--sysroot=$absoluteTargetSysRoot"))
+            }
+
         }
     }.flatten()
 
